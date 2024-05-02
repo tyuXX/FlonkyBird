@@ -3,7 +3,7 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 const ctx = canvas.getContext("2d");
 
-//FX Sound effects and etc.
+// FX, Sound effects and etc.
 const flapSound = new Audio("sounds/flap.wav");
 const hitSound = new Audio("sounds/hit.wav");
 const scoreSound = new Audio("sounds/score.wav");
@@ -15,6 +15,17 @@ function gameover() {
   gameOverText.style.display = "block";
   restartButton.style.display = "block";
 }
+
+// Draw graphics
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBird();
+  drawPipes();
+  requestAnimationFrame(draw);
+}
+
+// Constants
+const doctitle = document.title;
 
 // Get canvas dimensions
 const canvasWidth = canvas.width;
@@ -32,7 +43,8 @@ let gamespeed = 0;
 // Pipe variables (relative to canvas size)
 const pipeWidth = canvasWidth * 0.2; // 10% of canvas width
 const pipeGap = birdRadius * 8; // 8X Size of the bird
-let pipes = [];
+let pipes = []; // Array to store pipes
+let misiles = []; // Array to store misiles
 
 // UI elements
 const gameOverText = document.createElement("div");
@@ -67,21 +79,24 @@ restartButton.addEventListener("click", () => {
   pipes = [];
   score = 0;
   scoreDisplay.textContent = "Score: 0";
+  document.title = doctitle + " Score: 0";
   updateInterval = setInterval(update, 40);
 });
 
 // Check for space key press (flap)
 document.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
-    birdVelocity = birdRadius * -0.2 ; // Jump upwards
+    birdVelocity = birdRadius * -0.2; // Jump upwards
   }
 });
 
 //Gamestate updater
 let updateInterval = setInterval(update, 40);
+// Graphics initialize
+draw();
 
+// Generate new pipe
 function generatePipe() {
-  //Generate new pipe
   const topHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 1));
   const bottomHeight = Math.max(1, canvas.height - (topHeight + pipeGap));
   pipes.push({
@@ -89,8 +104,10 @@ function generatePipe() {
     topHeight: topHeight,
     bottomHeight: bottomHeight,
   });
+
   score++;
   scoreDisplay.textContent = `Score: ${score}`; // Update score display
+  document.title =  `${document.title} Score: ${score}`;
   if ((score % 10 === 0) & (gamespeed < 4)) {
     gamespeed++;
     clearInterval(updateInterval);
@@ -105,6 +122,7 @@ function generatePipe() {
   }
 }
 
+// Draw bird
 function drawBird() {
   ctx.beginPath();
   ctx.arc(birdX, birdY, birdRadius, 0, Math.PI * 2);
@@ -113,6 +131,7 @@ function drawBird() {
   ctx.closePath();
 }
 
+// Draw pipes
 function drawPipes() {
   pipes.forEach((pipe) => {
     ctx.fillStyle = "#00f"; // Green for top pipe
@@ -124,21 +143,10 @@ function drawPipes() {
       pipeWidth,
       pipe.bottomHeight
     );
-
-    pipe.x -= canvasWidth * 0.005; // Move pipe to the left
-
-    // Check for collision
-    if (
-      birdX + birdRadius > pipe.x &&
-      birdX - birdRadius < pipe.x + pipeWidth &&
-      (birdY - birdRadius < pipe.topHeight ||
-        birdY + birdRadius > pipe.topHeight + pipeGap)
-    ) {
-      gameover();
-    }
   });
 }
 
+// Game loop
 function update() {
   // Update bird position
   birdVelocity += gravity;
@@ -154,20 +162,26 @@ function update() {
     gameover();
   }
 
-  // Clear canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Draw game elements
-  drawBird();
-  drawPipes();
+  // Check for collision
+  if (
+    birdX + birdRadius > pipe.x &&
+    birdX - birdRadius < pipe.x + pipeWidth &&
+    (birdY - birdRadius < pipe.topHeight ||
+      birdY + birdRadius > pipe.topHeight + pipeGap)
+  ) {
+    gameover();
+  }
 
   // Add new pipes
-  if (
-    pipes.length === 0 ||
-    pipes[pipes.length - 1].x < canvas.width - pipeWidth - canvasWidth * 0.15
-  ) {
+  if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - pipeWidth - canvasWidth * 0.15) {
     generatePipe();
+    console.log("le pipe generate");
   }
+
+  // Update pipes position
+  pipes.forEach((pipe) => {
+    pipe.x -= canvasWidth * 0.005; // Move pipe to the left
+  });
 
   // Remove passed pipes
   pipes = pipes.filter((pipe) => pipe.x > 10);
